@@ -16,7 +16,6 @@ const AssistantState = Annotation.Root({
 });
 
 async function retrieveKnowledge(state) {
-  if (!state.userId) return { knowledgeContext: [] };
   const latestUserMessage = [...state.messages].reverse().find((message) => message.role === "user");
   if (!latestUserMessage?.content?.trim()) return { knowledgeContext: [] };
 

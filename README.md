@@ -5,7 +5,6 @@ Kairos AI Chat Application is a full-stack AI chat application with a React inte
 ## Features
 
 - Email and password registration and sign-in, plus Google sign-in
-- Immediate guest access for trying text chat without an account
 - Private conversation history associated with the authenticated user
 - User-managed text knowledge sources, retrieved privately for relevant answers
 - Authenticated PNG/JPEG/WebP image and PDF uploads; image-aware chat and resume PDF text extraction
@@ -137,8 +136,7 @@ Open the local URL printed by Vite, normally `http://localhost:5173`. The API li
 - Production session cookies are `Secure`, `HttpOnly`, and `SameSite=None` by default because Render's `onrender.com` hostnames are separate sites. Use `SESSION_COOKIE_SAME_SITE=lax` when deploying frontend and API under a same-site custom domain; state-changing requests always require an exact allowed `Origin`.
 - Every state-changing request (including sign-in and sign-out) must include an `Origin` matching `FRONTEND_ORIGIN`; requests without an origin are rejected. Keep this list limited to trusted frontend origins.
 - Google credentials are verified server-side using the Google ID token and configured client ID.
-- Visitors without a valid session can use guest text chat without signing in. Guest conversations are kept only in the browser for the current page session and are not saved to MongoDB; refreshing or leaving clears them. Guest mode is limited to 10 messages per IP every 15 minutes and does not include uploads, saved history, account settings, image generation, or website building.
-- Guest chat accepts unauthenticated text requests with temporary browser-managed context. Thread history and account data require a valid session; authenticated thread lookups and writes are scoped to the session user's ID.
+- Chat and thread endpoints require an authenticated session. Thread lookups and writes are scoped to the session user's ID.
 - The API rate-limits requests globally, with stricter limits for authentication and chat generation.
 - A thread contains its owner, thread ID, title, and ordered messages. Messages use `user` or `assistant` roles with content and timestamps.
 - Knowledge sources are pasted as text in Settings, split into overlapping chunks, and stored under the signed-in user's ID. MongoDB text search retrieves up to four relevant chunks for each answer; matching excerpts are treated as untrusted reference material and the model is asked to cite their titles.

@@ -1,8 +1,7 @@
 import express from "express";
-import rateLimit from "express-rate-limit";
 import Thread from "../models/Thread.js"; 
 import { runAssistant } from "../ai/assistantGraph.js";
-import requireAuth, { optionalAuth } from "../middleware/requireAuth.js";
+import requireAuth from "../middleware/requireAuth.js";
 import User from "../models/User.js";
 import mongoose from "mongoose";
 import { GridFSBucket, ObjectId } from "mongodb";
@@ -14,14 +13,7 @@ import { ownerScopedQuery } from "../security/ownerQuery.js";
 import { collectThreadFileIds, deleteFileIfUnreferenced, releaseFilesFromChat, reserveFilesForChat } from "../utils/fileLifecycle.js";
 
 const router = express.Router();
-const guestChatLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 10,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: "Guest demo limit reached. Sign in or try again later." }
-});
-router.use("/thread", requireAuth);
+router.use(requireAuth);
 
     router.get("/thread", async (req, res) => {
         try{
@@ -81,7 +73,7 @@ router.use("/thread", requireAuth);
 
     });
 
-router.post("/chat", optionalAuth, (req, res, next) => req.user ? next() : guestChatLimiter(req, res, next), async (req, res) => {
+router.post("/chat", async (req, res) => {
   const { threadId: suppliedThreadId, message } = req.body || {};
   // Keep accepting imageIds from older clients while naming new requests by their file type.
   const suppliedFileIds = req.body?.attachmentIds ?? req.body?.imageIds ?? [];
@@ -108,64 +100,6 @@ router.post("/chat", optionalAuth, (req, res, next) => req.user ? next() : guest
   });
 
   try {
-    if (!req.user) {
-      if (suppliedFileIds.length) return res.status(401).json({ error: "Sign in to attach files" });
-      const suppliedHistory = req.body?.history ?? [];
-      if (!Array.isArray(suppliedHistory) || suppliedHistory.length > 20) {
-        return res.status(400).json({ error: "Guest chat history is invalid" });
-      }
-      const modelMessages = [];
-      let remainingCharacters = 28000 - message.trim().length;
-      for (const entry of suppliedHistory.slice(-20).reverse()) {
-        if (!entry || !["user", "assistant"].includes(entry.role) || typeof entry.content !== "string") continue;
-        if (entry.content.length > 16000 || entry.content.length > remainingCharacters) continue;
-        modelMessages.unshift({ role: entry.role, content: entry.content });
-        remainingCharacters -= entry.content.length;
-      }
-      modelMessages.push({ role: "user", content: message.trim() });
-
-      let streamStarted = false;
-      const startStream = () => {
-        if (streamStarted) return;
-        streamStarted = true;
-        res.status(200).set({
-          "Content-Type": "text/event-stream; charset=utf-8",
-          "Cache-Control": "no-cache, no-transform",
-          "Connection": "keep-alive",
-          "X-Accel-Buffering": "no"
-        });
-        res.flushHeaders();
-      };
-      const assistantReply = await runAssistant({
-        userId: "",
-        requestId,
-        messages: modelMessages,
-        onStatus: (statusMessage) => {
-          if (res.destroyed || generationController.signal.aborted) return;
-          startStream();
-          res.write(`event: status\ndata: ${JSON.stringify({ message: statusMessage })}\n\n`);
-        },
-        onToken: (token) => {
-          if (res.destroyed || generationController.signal.aborted) return;
-          startStream();
-          res.write(`data: ${JSON.stringify({ token })}\n\n`);
-        },
-        signal: generationController.signal
-      });
-      if (typeof assistantReply !== "string" || !assistantReply.trim()) {
-        if (streamStarted) {
-          res.write(`event: error\ndata: ${JSON.stringify({ message: "AI provider returned an empty response" })}\n\n`);
-          return res.end();
-        }
-        return res.status(502).json({ error: "AI provider returned an empty response" });
-      }
-      if (generationController.signal.aborted || res.destroyed) return;
-      startStream();
-      console.info("Guest chat request completed", { requestId, durationMs: Date.now() - requestStartedAt });
-      res.write("event: done\ndata: {}\n\n");
-      return res.end();
-    }
-
     // Load only the retained tail so old unbounded records cannot inflate memory use.
     let thread = await Thread.findOne(ownerScopedQuery(req.user.userId, { threadId }))
       .select({ messages: { $slice: -100 } });
@@ -363,7 +297,7 @@ router.post("/chat", optionalAuth, (req, res, next) => req.user ? next() : guest
     return res.status(statusCode).json({ error: errorMessage });
   } finally {
     try {
-      if (req.user && reservedAttachmentIds.length) {
+      if (reservedAttachmentIds.length) {
         await releaseFilesFromChat({
           files: mongoose.connection.db.collection("images.files"),
           fileIds: reservedAttachmentIds,
@@ -372,7 +306,7 @@ router.post("/chat", optionalAuth, (req, res, next) => req.user ? next() : guest
           committed: requestPersisted
         });
       }
-      if (req.user && !requestPersisted) {
+      if (!requestPersisted) {
         const bucket = new GridFSBucket(mongoose.connection.db, { bucketName: "images" });
         for (const fileId of [...new Set(suppliedFileIds)]) {
           await deleteFileIfUnreferenced({

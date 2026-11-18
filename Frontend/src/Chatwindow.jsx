@@ -12,14 +12,10 @@ function Chatwindow() {
     const {
         user,
         setUser,
-        isGuest,
-        openSignIn,
-        continueAsGuest,
         prompt,
         setPrompt,
         setNewChat,
         currThreadId,
-        prevChats,
         setPrevChats,
         setAllThreads,
         setSidebarOpen,
@@ -220,10 +216,6 @@ function Chatwindow() {
             ? "Please review the attached PDF document."
             : "What is in the attached image?");
         const requestThreadId = currThreadId;
-        const guestHistory = isGuest
-            ? prevChats.filter((chat) => ["user", "assistant"].includes(chat.role) && typeof chat.content === "string")
-                .slice(-20).map(({ role, content }) => ({ role, content }))
-            : undefined;
         const assistantMessageId = crypto.randomUUID();
         const controller = new AbortController();
         let streamReader;
@@ -254,12 +246,7 @@ function Chatwindow() {
                 method: "POST",
                 signal: controller.signal,
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    message: currentPrompt,
-                    threadId: requestThreadId,
-                    attachmentIds: uploadedAttachments.map((attachment) => attachment.fileId),
-                    ...(isGuest ? { history: guestHistory } : {})
-                })
+                body: JSON.stringify({ message: currentPrompt, threadId: requestThreadId, attachmentIds: uploadedAttachments.map((attachment) => attachment.fileId) })
             });
             if (!response.ok) {
                 const result = await response.json().catch(() => null);
@@ -337,7 +324,7 @@ function Chatwindow() {
             setPrevChats((chats) => chats.map((chat) => chat.id === assistantMessageId
                 ? { ...chat, streaming: false }
                 : chat));
-            if (!isGuest) setAllThreads((threads) => {
+            setAllThreads((threads) => {
                 const existing = threads.find((thread) => thread.threadId === requestThreadId);
                 const title = existing?.title || currentPrompt.replace(/\s+/g, " ").slice(0, 120);
                 return [
@@ -384,11 +371,8 @@ function Chatwindow() {
             setPrevChats([]);
             setAllThreads([]);
             setPrompt("");
-            setSelectedAttachments([]);
-            setWebsiteBuilderMode(false);
             setSidebarOpen(false);
             setUser(null);
-            continueAsGuest();
         } catch (err) {
             console.error(err);
         } finally {
@@ -422,13 +406,11 @@ function Chatwindow() {
                 <span>
                     {websiteBuilderMode ? "Website Builder" : "Kairos AI Chat Application"}
                 </span>
-                {!isGuest && <button aria-pressed={websiteBuilderMode} className="mode-toggle" onClick={() => setWebsiteBuilderMode((mode) => !mode)} type="button">
+                <button aria-pressed={websiteBuilderMode} className="mode-toggle" onClick={() => setWebsiteBuilderMode((mode) => !mode)} type="button">
                     {websiteBuilderMode ? "Back to chat" : "Website Builder"}
-                </button>}
+                </button>
 
-                {isGuest ? (
-                    <button className="mode-toggle" onClick={openSignIn} type="button">Sign in</button>
-                ) : <div className="userIconDiv" ref={accountMenuRef}>
+                <div className="userIconDiv" ref={accountMenuRef}>
                     <button
                         aria-expanded={accountMenuOpen}
                         aria-haspopup="menu"
@@ -459,7 +441,7 @@ function Chatwindow() {
                             </button>
                         </div>
                     )}
-                </div>}
+                </div>
             </div>
 
             {activeAccountDialog && (
@@ -599,7 +581,7 @@ function Chatwindow() {
 
                 <form className="inputBox" onSubmit={(event) => { event.preventDefault(); getReply(); }}>
 
-                    {!isGuest && <label className="image-upload-button" title="Attach images or PDFs">
+                    <label className="image-upload-button" title="Attach images or PDFs">
                         <i className="fa-solid fa-paperclip" aria-hidden="true"></i>
                         <span className="sr-only">Attach images or PDFs</span>
                         <input accept=".png,.jpg,.jpeg,.webp,.pdf,image/png,image/jpeg,image/webp,application/pdf" disabled={loading} multiple onChange={(event) => {
@@ -616,7 +598,7 @@ function Chatwindow() {
                             setSelectedAttachments((current) => [...current, ...valid].slice(0, 3));
                             event.target.value = "";
                         }} type="file" />
-                    </label>}
+                    </label>
 
                     <textarea
                         aria-label="Message"
@@ -653,7 +635,6 @@ function Chatwindow() {
                 ))}</div>}
 
                 <p className="info">
-                    {isGuest && "Guest demo: this conversation is temporary and will be cleared when you leave. "}
                     Kairos AI Chat Application can make mistakes. Verify important information.
                 </p>
 
