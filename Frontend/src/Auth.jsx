@@ -3,7 +3,7 @@ import { GoogleLogin } from "@react-oauth/google";
 import { apiFetch } from "./api";
 import "./Auth.css";
 
-function Auth({ onAuthenticated, googleEnabled }) {
+function Auth({ onAuthenticated, onContinueAsGuest, googleEnabled }) {
     const [mode, setMode] = useState("login");
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
@@ -142,6 +142,9 @@ function Auth({ onAuthenticated, googleEnabled }) {
                         {isSignup ? "Sign in" : "Create an account"}
                     </button>
                 </p>
+                <button className="auth-guest-button" onClick={onContinueAsGuest} type="button">
+                    Continue without signing in
+                </button>
             </section>
         </main>
     );
