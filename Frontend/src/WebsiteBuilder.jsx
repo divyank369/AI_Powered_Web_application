@@ -144,7 +144,7 @@ function WebsiteBuilder() {
         const key = `${preview.projectId}:${diagnostic.category}:${diagnostic.logs}`;
         if (autoFixHandled.current === key) return;
         autoFixHandled.current = key;
-        if (window.confirm("SigmaGPT detected a preview error. Allow AI to prepare a patch for review? No code will change until you apply it.")) {
+        if (window.confirm("Kairos AI Chat Application detected a preview error. Allow AI to prepare a patch for review? No code will change until you apply it.")) {
             const timer = setTimeout(() => { void requestFix(); }, 0);
             return () => clearTimeout(timer);
         }

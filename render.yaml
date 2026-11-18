@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: sigmagpt-api
+    name: kairos-ai-chat-api
     runtime: node
     plan: free
     branch: main
@@ -27,7 +27,7 @@ services:
         sync: false
 
   - type: web
-    name: sigmagpt-web
+    name: kairos-ai-chat-web
     runtime: static
     branch: main
     rootDir: Frontend
@@ -39,7 +39,7 @@ services:
       - key: VITE_API_URL
         fromService:
           type: web
-          name: sigmagpt-api
+          name: kairos-ai-chat-api
           envVarKey: RENDER_EXTERNAL_URL
       - key: VITE_GOOGLE_CLIENT_ID
         sync: false

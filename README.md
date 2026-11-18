@@ -1,6 +1,6 @@
-# SigmaGPT
+# Kairos AI Chat Application
 
-SigmaGPT is a full-stack AI chat application with a React interface, an Express API, and MongoDB-backed conversation history. Assistant responses stream to the browser as they are generated, while each completed exchange is stored in the conversation thread.
+Kairos AI Chat Application is a full-stack AI chat application with a React interface, an Express API, and MongoDB-backed conversation history. Assistant responses stream to the browser as they are generated, while each completed exchange is stored in the conversation thread.
 
 ## Features
 
@@ -45,17 +45,24 @@ If the client disconnects, the active provider request is aborted. Incomplete pr
 ```text
 .
 ├── Backend/
+│   ├── ai/               # LangGraph assistant workflow
 │   ├── middleware/       # Session authentication
-│   ├── models/           # Mongoose User and Thread schemas
-│   ├── routes/           # Authentication and chat/thread API routes
+│   ├── models/           # MongoDB schemas
+│   ├── routes/           # Auth, chat, knowledge, image, and website APIs
+│   ├── security/         # Origin checks and owner-scoped queries
 │   ├── tests/            # Backend tests
-│   ├── utils/            # AI provider integration and streaming parser
+│   ├── utils/            # AI, uploads, website generation, and deployment helpers
 │   └── server.js         # Express setup and application startup
 ├── Frontend/
-│   ├── public/           # Static frontend assets
-│   └── src/              # React app, chat UI, context, and API client
-└── render.yaml           # Render API and static-site Blueprint
+│   ├── src/              # React app, chat UI, website builder, and API client
+│   └── index.html        # Vite HTML entry point
+├── SandboxRunner/        # Optional isolated website preview/build service
+├── render.yaml           # Render API and static-site Blueprint
+├── SANDBOX_DEPLOYMENT.md # Optional preview runner and publishing setup
+└── .gitignore            # Local secrets, dependencies, build output, and logs
 ```
+
+The backend and frontend each have their own `.gitignore` for local dependencies, environment files, and build output. The root `.gitignore` covers the sandbox runner and common workspace files.
 
 ## Getting Started
 
@@ -100,7 +107,7 @@ Set these frontend variables in `Frontend/.env`:
 
 Never put `GROQ_API_KEY` or other server secrets in frontend environment variables. To enable Google sign-in locally, add `http://localhost:5173` as an authorized JavaScript origin in the Google OAuth client configuration.
 
-The default `openai/gpt-oss-20b` text model supports Groq's built-in live search and code interpreter, so no separate search API key is needed. `GROQ_MODEL` can be set to `openai/gpt-oss-120b` to use the other supported model. Custom text models or non-Groq API endpoints run without these built-in tools. The tools are read-only: SigmaGPT can search and calculate, but it cannot send messages, change external accounts, or take other actions on your behalf. Uploaded images use the separate `GROQ_VISION_MODEL` path and are not sent to web search.
+The default `openai/gpt-oss-20b` text model supports Groq's built-in live search and code interpreter, so no separate search API key is needed. `GROQ_MODEL` can be set to `openai/gpt-oss-120b` to use the other supported model. Custom text models or non-Groq API endpoints run without these built-in tools. The tools are read-only: Kairos AI Chat Application can search and calculate, but it cannot send messages, change external accounts, or take other actions on your behalf. Uploaded images use the separate `GROQ_VISION_MODEL` path and are not sent to web search.
 
 ### Install and Run
 
