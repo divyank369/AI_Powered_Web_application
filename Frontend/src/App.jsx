@@ -9,6 +9,7 @@ import { apiFetch } from "./api";
 
 function App() {
     const [user, setUser] = useState(null);
+    const [view, setView] = useState("checking");
     const [prompt, setPrompt] = useState("");
     // Random UUIDs avoid exposing creation time in client-generated thread IDs.
     const [currThreadId, setCurrThreadId] = useState(() => crypto.randomUUID());
@@ -24,9 +25,17 @@ function App() {
         apiFetch("/api/auth/me")
             .then(async (response) => response.ok ? response.json() : null)
             .then((result) => {
-                if (isMounted && result?.user) setUser(result.user);
+                if (!isMounted) return;
+                if (result?.user) {
+                    setUser(result.user);
+                    setView("account");
+                } else {
+                    setView("guest");
+                }
             })
-            .catch(() => {});
+            .catch(() => {
+                if (isMounted) setView("guest");
+            });
 
         return () => {
             isMounted = false;
@@ -36,6 +45,9 @@ function App() {
     const providerValue = {
         user,
         setUser,
+        isGuest: view === "guest",
+        openSignIn: () => setView("sign-in"),
+        continueAsGuest: () => setView("guest"),
         prompt,
         setPrompt,
         currThreadId,
@@ -53,8 +65,20 @@ function App() {
     };
 
     let content;
-    if (!user) {
-        content = <Auth googleEnabled={Boolean(googleClientId)} onAuthenticated={setUser} />;
+    if (view === "checking") {
+        content = <main className="auth-screen"><p className="auth-intro">Opening Kairos AI Chat Application…</p></main>;
+    } else if (view === "sign-in") {
+        content = <Auth
+            googleEnabled={Boolean(googleClientId)}
+            onAuthenticated={(authenticatedUser) => {
+                setPrevChats([]);
+                setAllThreads([]);
+                setCurrThreadId(crypto.randomUUID());
+                setUser(authenticatedUser);
+                setView("account");
+            }}
+            onContinueAsGuest={() => setView("guest")}
+        />;
     } else {
         content = (
             <div className="app">

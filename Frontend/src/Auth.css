@@ -162,6 +162,29 @@
     color: #fff;
 }
 
+.auth-guest-button {
+    width: 100%;
+    min-height: 42px;
+    margin-top: 18px;
+    border: 1px solid #52635e;
+    border-radius: 6px;
+    background: transparent;
+    color: #d1e5de;
+    cursor: pointer;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.auth-guest-button:hover {
+    background: #29332f;
+}
+
+.auth-guest-button:focus-visible {
+    outline: 2px solid #b9d8d0;
+    outline-offset: 2px;
+}
+
 .auth-loading {
     min-height: 100vh;
     display: grid;

@@ -13,6 +13,7 @@ function Sidebar() {
         setNewChat,
         setPrompt,
         setPrevChats,
+        isGuest,
         sidebarOpen,
         setSidebarOpen
     } = useContext(MyContext);
@@ -77,6 +78,11 @@ function Sidebar() {
     };
 
     useEffect(() => {
+        if (isGuest) {
+            setHistoryLoading(false);
+            setAllThreads([]);
+            return undefined;
+        }
         const controller = new AbortController();
         const getAllThreads = async () => {
             try {
@@ -97,7 +103,7 @@ function Sidebar() {
 
         getAllThreads();
         return () => controller.abort();
-    }, [setAllThreads]);
+    }, [isGuest, setAllThreads]);
     return (
         <aside aria-label="Conversation history" className={`sidebar${sidebarOpen ? " sidebar-open" : ""}`}>
             <div className="sidebar-header">
@@ -116,9 +122,10 @@ function Sidebar() {
             </div>
 
             <ul className="history">
+                {isGuest && <li className="history-message">Guest chats are temporary and are not saved. Sign in to keep your history.</li>}
                 {historyError && <li className="history-message" role="alert">{historyError}</li>}
-                {!historyError && historyLoading && <li className="history-message">Loading conversations…</li>}
-                {!historyError && !historyLoading && allThreads.length === 0 && (
+                {!isGuest && !historyError && historyLoading && <li className="history-message">Loading conversations…</li>}
+                {!isGuest && !historyError && !historyLoading && allThreads.length === 0 && (
                     <li className="history-message">No conversations yet</li>
                 )}
                 {
@@ -147,7 +154,7 @@ function Sidebar() {
             </ul>
 
             <div className="sign">
-                <p>Your chat history</p>
+                <p>{isGuest ? "Temporary guest demo" : "Your chat history"}</p>
             </div>
         </aside>
     );

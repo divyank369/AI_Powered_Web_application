@@ -2,16 +2,10 @@ import jwt from "jsonwebtoken";
 
 const maxSessionAgeSeconds = 7 * 24 * 60 * 60;
 
-export default function requireAuth(req, res, next) {
+function readSession(req) {
     const secret = process.env.AUTH_JWT_SECRET;
-    if (!secret) {
-        return res.status(503).json({ error: "Authentication is not configured on the server" });
-    }
-
     const token = req.cookies?.friendgpt_session;
-    if (!token) {
-        return res.status(401).json({ error: "Authentication required" });
-    }
+    if (!secret || !token) return null;
 
     try {
         const payload = jwt.verify(token, secret, { algorithms: ["HS256"] });
@@ -25,11 +19,27 @@ export default function requireAuth(req, res, next) {
             payload.exp <= payload.iat ||
             payload.exp - payload.iat > maxSessionAgeSeconds
         ) {
-            return res.status(401).json({ error: "Invalid session" });
+            return null;
         }
-        req.user = { userId: payload.sub };
-        return next();
+        return { userId: payload.sub };
     } catch {
-        return res.status(401).json({ error: "Session expired or invalid" });
+        return null;
     }
+}
+
+export default function requireAuth(req, res, next) {
+    if (!process.env.AUTH_JWT_SECRET) {
+        return res.status(503).json({ error: "Authentication is not configured on the server" });
+    }
+    const token = req.cookies?.friendgpt_session;
+    if (!token) return res.status(401).json({ error: "Authentication required" });
+    const session = readSession(req);
+    if (!session) return res.status(401).json({ error: "Session expired or invalid" });
+    req.user = session;
+    return next();
+}
+
+export function optionalAuth(req, _res, next) {
+    req.user = readSession(req);
+    return next();
 }
