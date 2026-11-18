@@ -68,7 +68,7 @@ function Auth({ onAuthenticated, googleEnabled }) {
                 <div className="auth-brand-mark" aria-hidden="true">
                     <i className="fa-solid fa-comment-dots"></i>
                 </div>
-                <p className="auth-eyebrow">Kairos AI Chat Application</p>
+                <p className="auth-eyebrow">SigmaGPT</p>
                 <h1 id="auth-title">{isSignup ? "Create your account" : "Welcome back"}</h1>
                 <p className="auth-intro">
                     {isSignup ? "Your conversations, kept in one place." : "Sign in to continue your conversations."}
@@ -131,7 +131,7 @@ function Auth({ onAuthenticated, googleEnabled }) {
                 </div>
 
                 <p className="auth-switch">
-                    {isSignup ? "Already have an account?" : "New to Kairos AI Chat Application?"}
+                    {isSignup ? "Already have an account?" : "New to SigmaGPT?"}
                     <button
                         onClick={() => {
                             setMode(isSignup ? "login" : "signup");

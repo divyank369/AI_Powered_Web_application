@@ -51,7 +51,7 @@ test("streams assistant response deltas while preserving conversation context", 
     assert.equal(requestBody.max_completion_tokens, 2048);
     assert.equal(requestBody.stream, true);
     assert.equal(requestBody.messages[0].role, "system");
-    assert.match(requestBody.messages[0].content, /You are Kairos AI Chat Application/);
+    assert.match(requestBody.messages[0].content, /You are SigmaGPT/);
     assert.match(requestBody.messages[0].content, /Do not claim to be the ChatGPT application/);
     assert.equal(requestBody.messages[0].content.includes("openai/gpt-oss-20b"), true);
     assert.deepEqual(requestBody.messages.slice(-messages.length), messages);

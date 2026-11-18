@@ -348,7 +348,7 @@ function Chatwindow() {
                 setRequestError({
                     threadId: requestThreadId,
                     message: err.name === "TypeError"
-                        ? "Could not connect to Kairos AI Chat Application. Check your connection and try again."
+                        ? "Could not connect to SigmaGPT. Check your connection and try again."
                         : err.message || "Could not send your message. Please try again."
                 });
             }
@@ -404,7 +404,7 @@ function Chatwindow() {
                     <i className="fa-solid fa-bars" aria-hidden="true"></i>
                 </button>
                 <span>
-                    {websiteBuilderMode ? "Website Builder" : "Kairos AI Chat Application"}
+                    {websiteBuilderMode ? "Website Builder" : "SigmaGPT"}
                 </span>
                 <button aria-pressed={websiteBuilderMode} className="mode-toggle" onClick={() => setWebsiteBuilderMode((mode) => !mode)} type="button">
                     {websiteBuilderMode ? "Back to chat" : "Website Builder"}
@@ -635,7 +635,7 @@ function Chatwindow() {
                 ))}</div>}
 
                 <p className="info">
-                    Kairos AI Chat Application can make mistakes. Verify important information.
+                    SigmaGPT can make mistakes. Verify important information.
                 </p>
 
             </div>

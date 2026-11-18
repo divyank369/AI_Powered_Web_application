@@ -8,7 +8,7 @@ import { runDocker } from "./dockerCommand.js";
 
 const PORT = Number(process.env.PORT || 8090);
 const API_TOKEN = process.env.SANDBOX_SERVICE_TOKEN || "";
-const DATA_DIR = process.env.SANDBOX_DATA_DIR || path.join(tmpdir(), "kairos-ai-chat-sandboxes");
+const DATA_DIR = process.env.SANDBOX_DATA_DIR || path.join(tmpdir(), "sigmagpt-sandboxes");
 const NODE_IMAGE = process.env.SANDBOX_NODE_IMAGE || "node:22-alpine";
 const publicPreviewUrl = new URL(process.env.SANDBOX_PUBLIC_ORIGIN || "http://localhost:8090");
 if (publicPreviewUrl.username || publicPreviewUrl.password || publicPreviewUrl.pathname !== "/" || (process.env.NODE_ENV === "production" && publicPreviewUrl.protocol !== "https:")) {
@@ -19,7 +19,7 @@ const frameOrigins = (process.env.SANDBOX_FRAME_ORIGINS || "").split(",").map((v
   if (url.username || url.password || url.pathname !== "/" || !["https:", "http:"].includes(url.protocol)) throw new Error("SANDBOX_FRAME_ORIGINS must contain only HTTP or HTTPS origins");
   return url.origin;
 });
-if (process.env.NODE_ENV === "production" && frameOrigins.length === 0) throw new Error("Configure SANDBOX_FRAME_ORIGINS for the Kairos AI Chat Application frontend");
+if (process.env.NODE_ENV === "production" && frameOrigins.length === 0) throw new Error("Configure SANDBOX_FRAME_ORIGINS for the SigmaGPT frontend");
 const previewSocketOrigin = `${publicPreviewUrl.protocol === "https:" ? "wss:" : "ws:"}//${publicPreviewUrl.host}`;
 const previewCsp = `default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; connect-src 'self' ${publicPreviewUrl.origin} ${previewSocketOrigin}; form-action 'self'; base-uri 'none'; object-src 'none'; frame-ancestors ${frameOrigins.length ? frameOrigins.join(" ") : "'none'"}`;
 const MAX_FILE_BYTES = 30000;
@@ -123,13 +123,13 @@ function sessionInfo(session) {
 async function buildAndRun(session) {
   session.phase = "dependencies";
   try {
-    const network = process.env.SANDBOX_BUILD_NETWORK || "kairos-ai-chat-build-egress";
+    const network = process.env.SANDBOX_BUILD_NETWORK || "sigmagpt-build-egress";
     const buildName = `sg-build-${session.id}`;
     const moduleVolume = `sg-modules-${session.id}`;
     session.moduleVolume = moduleVolume;
-    await runDocker(["volume", "create", "--driver", "local", "--label", `kairos-ai-chat.session=${session.id}`,
+    await runDocker(["volume", "create", "--driver", "local", "--label", `sigmagpt.session=${session.id}`,
       "--opt", "type=tmpfs", "--opt", "device=tmpfs", "--opt", "o=size=512m,uid=1000,gid=1000,mode=0755", moduleVolume], { timeout: 10_000 });
-    const buildArgs = ["run", "--rm", "--name", buildName, "--label", "kairos-ai-chat.session=" + session.id,
+    const buildArgs = ["run", "--rm", "--name", buildName, "--label", "sigmagpt.session=" + session.id,
       "--network", network, "--memory=512m", "--cpus=0.75", "--pids-limit=64", "--security-opt=no-new-privileges",
       "--cap-drop=ALL", "--user=1000:1000", "--read-only", "--tmpfs", "/tmp:rw,noexec,nosuid,size=64m",
       "--tmpfs", "/home/node/.npm:rw,noexec,nosuid,size=96m", "-v", `${session.folder}:/workspace:rw`, "--mount", `type=volume,src=${moduleVolume},dst=/workspace/node_modules`, "-w", "/workspace", NODE_IMAGE,
@@ -144,8 +144,8 @@ async function buildAndRun(session) {
 
     session.phase = "runtime";
     const runtimeName = `sg-preview-${session.id}`;
-    const runtimeArgs = ["run", "-d", "--name", runtimeName, "--label", "kairos-ai-chat.session=" + session.id,
-      "--network", process.env.SANDBOX_PREVIEW_NETWORK || "kairos-ai-chat-preview-internal", "--publish", "127.0.0.1::4173",
+    const runtimeArgs = ["run", "-d", "--name", runtimeName, "--label", "sigmagpt.session=" + session.id,
+      "--network", process.env.SANDBOX_PREVIEW_NETWORK || "sigmagpt-preview-internal", "--publish", "127.0.0.1::4173",
       "--memory=512m", "--cpus=0.75", "--pids-limit=64", "--security-opt=no-new-privileges", "--cap-drop=ALL", "--user=1000:1000",
       "--read-only",
       "--tmpfs", "/tmp:rw,noexec,nosuid,size=64m", "-v", `${session.folder}:/workspace:ro`, "--mount", `type=volume,src=${moduleVolume},dst=/workspace/node_modules,readonly`, "-w", "/workspace", NODE_IMAGE,
@@ -285,7 +285,7 @@ const server = http.createServer(async (req, res) => {
     const buildName = `sg-deploy-${session.id}`;
     deploymentBuilds.add(session.id);
     try {
-      const limits = ["--label", "kairos-ai-chat.session=" + session.id, "--memory=512m", "--cpus=0.75", "--pids-limit=64", "--security-opt=no-new-privileges", "--cap-drop=ALL", "--user=1000:1000", "--read-only", "--tmpfs", "/tmp:rw,noexec,nosuid,size=64m"];
+      const limits = ["--label", "sigmagpt.session=" + session.id, "--memory=512m", "--cpus=0.75", "--pids-limit=64", "--security-opt=no-new-privileges", "--cap-drop=ALL", "--user=1000:1000", "--read-only", "--tmpfs", "/tmp:rw,noexec,nosuid,size=64m"];
       const mounts = (mode) => ["-v", `${session.folder}:/workspace:${mode}`, "--mount", `type=volume,src=${session.moduleVolume},dst=/workspace/node_modules,readonly`, "-w", "/workspace", NODE_IMAGE];
       await runDocker(["run", "--rm", "--network=none", "--name", buildName, ...limits, ...mounts("rw"), "npm", "run", "build"], { timeout: 90_000, captureLimit: 8000 });
       const extractScript = `const fs=require('node:fs/promises'),path=require('node:path'),crypto=require('node:crypto');const root='/workspace/dist';const denied=/(^|\\/)(?:\\.env(?:\\..*)?|\\.git|node_modules)(?:\\/|$)|\\.(?:pem|key|p12|pfx|crt|cer)$/i;const mime={html:'text/html',css:'text/css',js:'text/javascript',mjs:'text/javascript',json:'application/json',svg:'image/svg+xml',png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',webp:'image/webp',gif:'image/gif',ico:'image/x-icon',woff:'font/woff',woff2:'font/woff2',wasm:'application/wasm'};let total=0;const files=[];async function walk(dir,base=''){for(const entry of await fs.readdir(dir,{withFileTypes:true})){const rel=base?base+'/'+entry.name:entry.name;if(denied.test(rel)||rel.split('/').some(x=>!x||x==='.'||x==='..'))throw Error('unsafe output');const full=path.join(dir,entry.name);const st=await fs.lstat(full);if(st.isSymbolicLink())throw Error('symlink output');if(st.isDirectory()){await walk(full,rel);continue}if(!st.isFile()||files.length>=500)throw Error('invalid output');total+=st.size;if(total>18*1024*1024)throw Error('output too large');const data=await fs.readFile(full);const ext=rel.split('.').pop().toLowerCase();files.push({path:rel,content:data.toString('base64'),contentType:mime[ext]||'application/octet-stream',hash:crypto.createHash('sha256').update(data).digest('hex')})}};(async()=>{await walk(root);if(!files.some(f=>f.path==='index.html'))throw Error('missing index');process.stdout.write(JSON.stringify({files}))})().catch(e=>{console.error(e.message);process.exit(1)})`;
@@ -326,7 +326,7 @@ async function proxyPreview(req, res, url) {
   if (!session) { res.writeHead(404, { "Cache-Control": "no-store" }); return res.end("Preview not found or expired"); }
   const requestPath = match[2] || "/";
   if (requestPath.split("/").some((part) => part === "..")) { res.writeHead(400); return res.end(); }
-  if (requestPath === "/__kairos-ai-chat_diagnostics") {
+  if (requestPath === "/__sigmagpt_diagnostics") {
     if (req.method !== "POST") { res.writeHead(405, { "Cache-Control": "no-store" }); return res.end(); }
     try {
       const report = await readJson(req, 4096);
@@ -350,7 +350,7 @@ async function proxyPreview(req, res, url) {
     const contentType = upstream.headers.get("content-type") || "application/octet-stream";
     if (req.method !== "HEAD" && contentType.includes("text/html") && upstream.ok) {
       const html = await upstream.text();
-      const reportUrl = `/p/${session.previewToken}/__kairos-ai-chat_diagnostics`;
+      const reportUrl = `/p/${session.previewToken}/__sigmagpt_diagnostics`;
       const script = `<script>(function(){var u=${JSON.stringify(reportUrl)},n=0;function send(v,c){if(n++>=10)return;try{fetch(u,{method:'POST',mode:'no-cors',keepalive:true,headers:{'Content-Type':'text/plain'},body:JSON.stringify({category:c||'browser-runtime',errors:[String(v).slice(0,800)]})})}catch(e){}}window.addEventListener('error',function(e){if(e.target&&e.target!==window){send('resource failed: '+(e.target.src||e.target.href||e.target.tagName),'network');return}send('runtime: '+(e.message||'script error')+' '+(e.filename||'')+':'+(e.lineno||''))},true);window.addEventListener('unhandledrejection',function(e){send('runtime rejection: '+String(e.reason))});var old=console.error;console.error=function(){send('console.error: '+Array.from(arguments).map(String).join(' ').slice(0,800));return old.apply(console,arguments)}})();</script>`;
       const injected = html.includes("</head>") ? html.replace("</head>", `${script}</head>`) : `${script}${html}`;
       res.writeHead(upstream.status, {
@@ -395,9 +395,9 @@ setInterval(() => {
 
 if (!API_TOKEN || API_TOKEN.length < 32) throw new Error("SANDBOX_SERVICE_TOKEN must contain at least 32 characters");
 await mkdir(DATA_DIR, { recursive: true, mode: 0o700 });
-const orphanedContainers = await runDocker(["ps", "-aq", "--filter", "label=kairos-ai-chat.session"], { timeout: 15_000 }).catch(() => "");
+const orphanedContainers = await runDocker(["ps", "-aq", "--filter", "label=sigmagpt.session"], { timeout: 15_000 }).catch(() => "");
 if (orphanedContainers) await runDocker(["rm", "-f", ...orphanedContainers.split(/\s+/).filter(Boolean)], { timeout: 30_000 }).catch(() => {});
-const orphanedVolumes = await runDocker(["volume", "ls", "-q", "--filter", "label=kairos-ai-chat.session"], { timeout: 15_000 }).catch(() => "");
+const orphanedVolumes = await runDocker(["volume", "ls", "-q", "--filter", "label=sigmagpt.session"], { timeout: 15_000 }).catch(() => "");
 if (orphanedVolumes) await runDocker(["volume", "rm", "-f", ...orphanedVolumes.split(/\s+/).filter(Boolean)], { timeout: 30_000 }).catch(() => {});
 for (const entry of await readdir(DATA_DIR, { withFileTypes: true })) {
   if (entry.isDirectory() && entry.name.startsWith("project-")) await rm(path.join(DATA_DIR, entry.name), { recursive: true, force: true }).catch(() => {});

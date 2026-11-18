@@ -5,15 +5,15 @@ services:
     environment:
       PORT: "8090"
       SANDBOX_SERVICE_TOKEN: ${SANDBOX_SERVICE_TOKEN:?Set a random token of at least 32 characters}
-      SANDBOX_DATA_DIR: /srv/kairos-ai-chat-sandboxes
+      SANDBOX_DATA_DIR: /srv/sigmagpt-sandboxes
       SANDBOX_NODE_IMAGE: ${SANDBOX_NODE_IMAGE:?Pin an approved Node image tag or digest}
       SANDBOX_PUBLIC_ORIGIN: ${SANDBOX_PUBLIC_ORIGIN:?Set the dedicated HTTPS preview origin}
-      SANDBOX_FRAME_ORIGINS: ${SANDBOX_FRAME_ORIGINS:?Set the Kairos AI Chat Application frontend origin}
-      SANDBOX_BUILD_NETWORK: kairos-ai-chat-build-egress
-      SANDBOX_PREVIEW_NETWORK: kairos-ai-chat-preview-internal
+      SANDBOX_FRAME_ORIGINS: ${SANDBOX_FRAME_ORIGINS:?Set the SigmaGPT frontend origin}
+      SANDBOX_BUILD_NETWORK: sigmagpt-build-egress
+      SANDBOX_PREVIEW_NETWORK: sigmagpt-preview-internal
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - /srv/kairos-ai-chat-sandboxes:/srv/kairos-ai-chat-sandboxes
+      - /srv/sigmagpt-sandboxes:/srv/sigmagpt-sandboxes
     ports:
       - "${SANDBOX_BIND_IP:-127.0.0.1}:8090:8090"
     mem_limit: 256m
@@ -30,4 +30,4 @@ services:
 networks:
   build-egress:
     external: true
-    name: kairos-ai-chat-build-egress
+    name: sigmagpt-build-egress

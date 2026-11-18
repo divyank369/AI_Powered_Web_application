@@ -1,5 +1,5 @@
 {
-  "name": "kairos-ai-chat-sandbox-runner",
+  "name": "sigmagpt-sandbox-runner",
   "private": true,
   "type": "module",
   "engines": { "node": ">=22.12.0" },

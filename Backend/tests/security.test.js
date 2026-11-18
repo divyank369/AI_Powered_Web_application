@@ -38,7 +38,7 @@ test("session auth accepts signed expiring IDs and rejects malformed, expired, u
 });
 
 test("unsafe API requests require an exact configured origin, including when Origin is absent", () => {
-  const guard = createOriginGuard(["https://kairos-ai-chat.example", "http://localhost:5173"]);
+  const guard = createOriginGuard(["https://sigmagpt.example", "http://localhost:5173"]);
   const call = (method, origin) => {
     let nextCalled = false;
     let statusCode;
@@ -47,7 +47,7 @@ test("unsafe API requests require an exact configured origin, including when Ori
     guard(req, res, () => { nextCalled = true; });
     return { nextCalled, statusCode };
   };
-  assert.deepEqual(call("POST", "https://kairos-ai-chat.example"), { nextCalled: true, statusCode: undefined });
+  assert.deepEqual(call("POST", "https://sigmagpt.example"), { nextCalled: true, statusCode: undefined });
   assert.deepEqual(call("POST", undefined), { nextCalled: false, statusCode: 403 });
   assert.deepEqual(call("DELETE", "https://evil.example"), { nextCalled: false, statusCode: 403 });
   assert.deepEqual(call("GET", undefined), { nextCalled: true, statusCode: undefined });
@@ -69,10 +69,10 @@ test("production cookie defaults support the cross-site Render deployment secure
 });
 
 test("configured frontend origins must be exact HTTP or HTTPS origins", () => {
-  assert.deepEqual(parseAllowedOrigins("https://kairos-ai-chat.example,https://admin.kairos-ai-chat.example"), [
-    "https://kairos-ai-chat.example", "https://admin.kairos-ai-chat.example"
+  assert.deepEqual(parseAllowedOrigins("https://sigmagpt.example,https://admin.sigmagpt.example"), [
+    "https://sigmagpt.example", "https://admin.sigmagpt.example"
   ]);
-  for (const invalid of ["*", "https://kairos-ai-chat.example/path", "javascript:alert(1)", "not-an-origin"]) {
+  for (const invalid of ["*", "https://sigmagpt.example/path", "javascript:alert(1)", "not-an-origin"]) {
     assert.throws(() => parseAllowedOrigins(invalid), /FRONTEND_ORIGIN/);
   }
 });
